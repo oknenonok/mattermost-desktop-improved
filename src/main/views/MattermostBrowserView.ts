@@ -107,6 +107,9 @@ export class MattermostBrowserView extends EventEmitter {
                     mask-image: unset !important;
                     -webkit-mask-image: unset !important;
                 }
+                .PostAttachmentOpenGraph[href^="https://github.com/"] {
+                    display: none !important;
+                }
             `);
         });
 
