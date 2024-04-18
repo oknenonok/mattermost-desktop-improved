@@ -130,8 +130,10 @@ export class MattermostBrowserView extends EventEmitter {
     async hasUnreadThreads() {
         return this.browserView?.webContents.executeJavaScript(`
             new Promise(resolve => {
-                const threadsBtn = document.getElementById('sidebarItem_threads');
-                resolve(threadsBtn?.classList.contains('unread-title'));
+                setTimeout(() => {
+                    const threadsBtn = document.getElementById('sidebarItem_threads');
+                    resolve(threadsBtn?.classList.contains('unread-title'));
+                }, 200);
             });
         `);
     }
