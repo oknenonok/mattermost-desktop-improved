@@ -26,13 +26,15 @@ import {MattermostServer} from 'common/servers/MattermostServer';
 import ServerManager from 'common/servers/serverManager';
 import {URLValidationStatus} from 'common/utils/constants';
 import {isValidURI, isValidURL, parseURL} from 'common/utils/url';
+import PermissionsManager from 'main/permissionsManager';
 import {ServerInfo} from 'main/server/serverInfo';
-import {getLocalPreload, getLocalURLString} from 'main/utils';
+import {getLocalPreload} from 'main/utils';
 import ModalManager from 'main/views/modalManager';
 import ViewManager from 'main/views/viewManager';
 import MainWindow from 'main/windows/mainWindow';
 
-import type {UniqueServer, Server} from 'types/config';
+import type {Server} from 'types/config';
+import type {Permissions, UniqueServerWithPermissions} from 'types/permissions';
 import type {URLValidationResult} from 'types/server';
 
 const log = new Logger('App', 'ServerViewState');
@@ -131,7 +133,7 @@ export class ServerViewState {
 
         const modalPromise = ModalManager.addModal<null, Server>(
             'newServer',
-            getLocalURLString('newServer.html'),
+            'mattermost-desktop://renderer/newServer.html',
             getLocalPreload('internalAPI.js'),
             null,
             mainWindow,
@@ -161,14 +163,17 @@ export class ServerViewState {
             return;
         }
 
-        const modalPromise = ModalManager.addModal<UniqueServer, Server>(
+        const modalPromise = ModalManager.addModal<UniqueServerWithPermissions, {server: Server; permissions: Permissions}>(
             'editServer',
-            getLocalURLString('editServer.html'),
+            'mattermost-desktop://renderer/editServer.html',
             getLocalPreload('internalAPI.js'),
-            server.toUniqueServer(),
+            {server: server.toUniqueServer(), permissions: PermissionsManager.getForServer(server) ?? {}},
             mainWindow);
 
-        modalPromise.then((data) => ServerManager.editServer(id, data)).catch((e) => {
+        modalPromise.then((data) => {
+            ServerManager.editServer(id, data.server);
+            PermissionsManager.setForServer(server, data.permissions);
+        }).catch((e) => {
             // e is undefined for user cancellation
             if (e) {
                 log.error(`there was an error in the edit server modal: ${e}`);
@@ -190,7 +195,7 @@ export class ServerViewState {
 
         const modalPromise = ModalManager.addModal<string, boolean>(
             'removeServer',
-            getLocalURLString('removeServer.html'),
+            'mattermost-desktop://renderer/removeServer.html',
             getLocalPreload('internalAPI.js'),
             server.name,
             mainWindow,
@@ -203,11 +208,11 @@ export class ServerViewState {
                     this.currentServerId = remainingServers[0].id;
                 }
 
+                ServerManager.removeServer(server.id);
+
                 if (!remainingServers.length) {
                     delete this.currentServerId;
                 }
-
-                ServerManager.removeServer(server.id);
             }
         }).catch((e) => {
             // e is undefined for user cancellation

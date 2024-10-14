@@ -17,6 +17,9 @@ import {
     CALLS_WIDGET_CHANNEL_LINK_CLICK,
     CALLS_WIDGET_RESIZE,
     CALLS_WIDGET_SHARE_SCREEN,
+    CALLS_WIDGET_OPEN_THREAD,
+    CALLS_WIDGET_OPEN_STOP_RECORDING_MODAL,
+    CALLS_WIDGET_OPEN_USER_SETTINGS,
     DESKTOP_SOURCES_MODAL_REQUEST,
     GET_DESKTOP_SOURCES,
     UPDATE_SHORTCUT_MENU,
@@ -25,6 +28,7 @@ import {Logger} from 'common/log';
 import {CALLS_PLUGIN_ID, MINIMUM_CALLS_WIDGET_HEIGHT, MINIMUM_CALLS_WIDGET_WIDTH} from 'common/utils/constants';
 import {getFormattedPathName, isCallsPopOutURL, parseURL} from 'common/utils/url';
 import Utils from 'common/utils/util';
+import PermissionsManager from 'main/permissionsManager';
 import {
     composeUserAgent,
     getLocalPreload,
@@ -40,6 +44,8 @@ import type {
     CallsJoinCallMessage,
     CallsWidgetWindowConfig,
 } from 'types/calls';
+
+import ContextMenu from '../contextMenu';
 
 const log = new Logger('CallsWidgetWindow');
 
@@ -70,6 +76,9 @@ export class CallsWidgetWindow {
         ipcMain.on(CALLS_ERROR, this.forwardToMainApp(CALLS_ERROR));
         ipcMain.on(CALLS_LINK_CLICK, this.handleCallsLinkClick);
         ipcMain.on(CALLS_JOIN_REQUEST, this.forwardToMainApp(CALLS_JOIN_REQUEST));
+        ipcMain.on(CALLS_WIDGET_OPEN_THREAD, this.handleCallsOpenThread);
+        ipcMain.on(CALLS_WIDGET_OPEN_STOP_RECORDING_MODAL, this.handleCallsOpenStopRecordingModal);
+        ipcMain.on(CALLS_WIDGET_OPEN_USER_SETTINGS, this.forwardToMainApp(CALLS_WIDGET_OPEN_USER_SETTINGS));
 
         // deprecated in favour of CALLS_LINK_CLICK
         ipcMain.on(CALLS_WIDGET_CHANNEL_LINK_CLICK, this.handleCallsWidgetChannelLinkClick);
@@ -290,8 +299,12 @@ export class CallsWidgetWindow {
             event.preventDefault();
         });
 
+        const contextMenu = new ContextMenu({}, this.popOut);
+        contextMenu.reload();
+
         this.popOut.on('closed', () => {
             delete this.popOut;
+            contextMenu.dispose();
         });
 
         // Set the userAgent so that the widget's popout is considered a desktop window in the webapp code.
@@ -365,15 +378,15 @@ export class CallsWidgetWindow {
     private handleGetDesktopSources = async (event: IpcMainInvokeEvent, opts: Electron.SourcesOptions) => {
         log.debug('handleGetDesktopSources', opts);
 
-        if (event.sender.id !== this.mainView?.webContentsId) {
-            log.warn('handleGetDesktopSources', 'Blocked on wrong webContentsId');
-            return [];
+        // For Calls we make an extra check to ensure the event is coming from the expected window (main view).
+        // Otherwise we want to allow for other plugins to ask for screen sharing sources.
+        if (this.mainView && event.sender.id !== this.mainView.webContentsId) {
+            throw new Error('handleGetDesktopSources: blocked on wrong webContentsId');
         }
 
         const view = ViewManager.getViewByWebContentsId(event.sender.id);
         if (!view) {
-            log.error('handleGetDesktopSources: view not found');
-            return [];
+            throw new Error('handleGetDesktopSources: view not found');
         }
 
         if (process.platform === 'darwin' && systemPreferences.getMediaAccessStatus('screen') === 'denied') {
@@ -393,6 +406,10 @@ export class CallsWidgetWindow {
             }
         }
 
+        if (!await PermissionsManager.doPermissionRequest(view.webContentsId, 'screenShare', {requestingUrl: view.view.server.url.toString(), isMainFrame: false})) {
+            throw new Error('permissions denied');
+        }
+
         const screenPermissionsErrArgs = ['screen-permissions', this.callID];
 
         return desktopCapturer.getSources(opts).then((sources) => {
@@ -407,10 +424,7 @@ export class CallsWidgetWindow {
             }
 
             if (!hasScreenPermissions || !sources.length) {
-                log.info('missing screen permissions');
-                view.sendToRenderer(CALLS_ERROR, ...screenPermissionsErrArgs);
-                this.win?.webContents.send(CALLS_ERROR, ...screenPermissionsErrArgs);
-                return [];
+                throw new Error('handleGetDesktopSources: permissions denied');
             }
 
             const message = sources.map((source) => {
@@ -423,12 +437,14 @@ export class CallsWidgetWindow {
 
             return message;
         }).catch((err) => {
-            log.error('desktopCapturer.getSources failed', err);
+            // Only send calls error if this window has been initialized (i.e. we are in a call).
+            // The rest of the logic is shared so that other plugins can request screen sources.
+            if (this.callID) {
+                view.sendToRenderer(CALLS_ERROR, ...screenPermissionsErrArgs);
+                this.win?.webContents.send(CALLS_ERROR, ...screenPermissionsErrArgs);
+            }
 
-            view.sendToRenderer(CALLS_ERROR, ...screenPermissionsErrArgs);
-            this.win?.webContents.send(CALLS_ERROR, ...screenPermissionsErrArgs);
-
-            return [];
+            throw new Error(`handleGetDesktopSources: desktopCapturer.getSources failed: ${err}`);
         });
     };
 
@@ -502,6 +518,14 @@ export class CallsWidgetWindow {
             MainWindow.get()?.focus();
             this.mainView?.sendToRenderer(channel, ...args);
         };
+    };
+
+    private handleCallsOpenThread = (event: IpcMainEvent, threadID: string) => {
+        this.forwardToMainApp(CALLS_WIDGET_OPEN_THREAD)(event, threadID);
+    };
+
+    private handleCallsOpenStopRecordingModal = (event: IpcMainEvent, channelID: string) => {
+        this.forwardToMainApp(CALLS_WIDGET_OPEN_STOP_RECORDING_MODAL)(event, channelID);
     };
 
     private handleCallsLinkClick = (event: IpcMainEvent, url: string) => {

@@ -70,6 +70,15 @@ export type DesktopAPI = {
 
     focusPopout: () => void;
 
+    openThreadForCalls: (threadID: string) => void;
+    onOpenThreadForCalls: (listener: (threadID: string) => void) => () => void;
+
+    openStopRecordingModal: (channelID: string) => void;
+    onOpenStopRecordingModal: (listener: (channelID: string) => void) => () => void;
+
+    openCallsUserSettings: () => void;
+    onOpenCallsUserSettings: (listener: () => void) => () => void;
+
     // Utility
     unregister: (channel: string) => void;
 }

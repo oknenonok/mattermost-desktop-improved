@@ -45,10 +45,7 @@ export const MODAL_RESULT = 'modal-result';
 export const MODAL_OPEN = 'modal-open';
 export const MODAL_CLOSE = 'modal-close';
 export const NOTIFY_MENTION = 'notify_mention';
-export const WINDOW_CLOSE = 'window_close';
-export const WINDOW_MINIMIZE = 'window_minimize';
-export const WINDOW_MAXIMIZE = 'window_maximize';
-export const WINDOW_RESTORE = 'window_restore';
+export const EXIT_FULLSCREEN = 'exit-fullscreen';
 export const GET_FULL_SCREEN_STATUS = 'get-full-screen-status';
 
 export const UPDATE_TARGET_URL = 'update_target_url';
@@ -98,6 +95,7 @@ export const NO_UPDATE_AVAILABLE = 'no-update-available';
 export const BROWSER_HISTORY_PUSH = 'browser-history-push';
 export const APP_LOGGED_IN = 'app-logged-in';
 export const APP_LOGGED_OUT = 'app-logged-out';
+export const TAB_LOGIN_CHANGED = 'tab-login-changed';
 
 export const GET_AVAILABLE_SPELL_CHECKER_LANGUAGES = 'get-available-spell-checker-languages';
 
@@ -132,6 +130,9 @@ export const CALLS_JOINED_CALL = 'calls-joined-call';
 export const CALLS_POPOUT_FOCUS = 'calls-popout-focus';
 export const CALLS_ERROR = 'calls-error';
 export const CALLS_JOIN_REQUEST = 'calls-join-request';
+export const CALLS_WIDGET_OPEN_THREAD = 'calls-widget-open-thread';
+export const CALLS_WIDGET_OPEN_STOP_RECORDING_MODAL = 'calls-widget-open-stop-recording-modal';
+export const CALLS_WIDGET_OPEN_USER_SETTINGS = 'calls-widget-open-user-settings';
 
 export const REQUEST_CLEAR_DOWNLOADS_DROPDOWN = 'request-clear-downloads-dropdown';
 export const CLOSE_DOWNLOADS_DROPDOWN = 'close-downloads-dropdown';
@@ -144,7 +145,6 @@ export const DOWNLOADS_DROPDOWN_OPEN_FILE = 'downloads-dropdown-open-file';
 export const REQUEST_HAS_DOWNLOADS = 'request-has-downloads';
 export const DOWNLOADS_DROPDOWN_FOCUSED = 'downloads-dropdown-focused';
 export const RECEIVE_DOWNLOADS_DROPDOWN_SIZE = 'receive-downloads-dropdown-size';
-export const GET_DOWNLOADED_IMAGE_THUMBNAIL_LOCATION = 'get-downloaded-image-thumbnail-location';
 
 export const OPEN_DOWNLOADS_DROPDOWN_MENU = 'open-downloads-dropdown-menu';
 export const CLOSE_DOWNLOADS_DROPDOWN_MENU = 'close-downloads-dropdown-menu';
@@ -184,5 +184,16 @@ export const BROWSER_HISTORY_STATUS_UPDATED = 'browser-history-status-updated';
 
 export const NOTIFICATION_CLICKED = 'notification-clicked';
 
+export const OPEN_NOTIFICATION_PREFERENCES = 'open-notification-preferences';
+export const OPEN_WINDOWS_CAMERA_PREFERENCES = 'open-windows-camera-preferences';
+export const OPEN_WINDOWS_MICROPHONE_PREFERENCES = 'open-windows-microphone-preferences';
+export const GET_MEDIA_ACCESS_STATUS = 'get-media-access-status';
+
 // Legacy code remove signal
 export const LEGACY_OFF = 'legacy-off';
+
+export const GET_NONCE = 'get-nonce';
+
+export const DEVELOPER_MODE_UPDATED = 'developer-mode-updated';
+export const IS_DEVELOPER_MODE_ENABLED = 'is-developer-mode-enabled';
+export const GET_DEVELOPER_MODE_SETTING = 'get-developer-mode-setting';
